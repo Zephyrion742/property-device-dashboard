@@ -1,0 +1,1 @@
+{"name":"property-device-dashboard","private":true,"type":"module","scripts":{"typecheck":"tsc --noEmit","test":"node --experimental-strip-types src/device_dashboard.test.ts","start":"node --experimental-strip-types src/device_dashboard.ts"},"dependencies":{"zod":"^3.23.8"},"devDependencies":{"typescript":"^5.6.3"}}

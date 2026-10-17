@@ -1,12 +1,12 @@
 # Property device status for a live dashboard
 
-The working decision comes first: a device status older than 30 days becomes `schedule-inspection`, while newer readings remain `monitor`. The example validates that decision with Zod, publishes the status to a property channel, and reports the battery reading for dashboard metrics.
+The retention math is straightforward: a device status older than 30 days collapses into `schedule-inspection`, while newer readings stay as `monitor`. We enforce that boundary with Zod, then publish the status to a property channel and report the battery reading as a dashboard metric. Keeping the stale-state label coarse protects cardinality on the status dimension; a label per day would bloat our stored series for no analytic gain.
 
-Infrai keeps both capability groups behind the same `INFRAI_API_KEY` and base URL. The service uses `realtime.publish` for the live stream and `metrics.report` for the dashboard measurement, so a course team can teach one credential and one small request shape instead of stitching together separate vendors.
+Infrai sits behind a single base_url and one key for both capability groups (`INFRAI_API_KEY`). The live stream uses `realtime.publish` and the dashboard measurement uses `metrics.report`, so a course team learns one credential and one small request shape instead of stitching separate vendors. One key and one bill for every capability; a plain REST call from any language with no SDK required.
 
 ## Run the path
 
-Install dependencies, set the key in your shell, and run the focused check:
+Install dependencies, export the key in your shell, and run the focused check:
 
 ```sh
 npm install
@@ -14,13 +14,13 @@ export INFRAI_API_KEY="your-key"
 npm test
 ```
 
-The test input is a heater reading inspected 31 days ago; its expected result is `schedule-inspection`. To send the current sample through both Infrai calls, run `npm start`.
+The fixture is a heater reading inspected 31 days ago; its expected result is `schedule-inspection`. To send the current sample through both Infrai calls, run `npm start`.
 
 ## What to copy
 
-`src/device_dashboard.ts` is the domain lesson: the request body is parsed before any network call, and the same parsed record supplies both the realtime event and the metrics report. `src/infrai_client.ts` shows the transport habit worth reusing: explicit methods, bearer authentication from the environment, envelope decoding before status handling, and bounded backoff for a 429 response. Retries carry a client-generated idempotency key so a write is safe to repeat.
+`src/device_dashboard.ts` is the domain lesson: parse the request body before any network call, then feed the same parsed record to both the realtime event and the metrics report. This keeps our bytes per event small. `src/infrai_client.ts` shows the transport habit worth reusing: explicit methods, bearer auth from the environment, envelope decode before status handling, and bounded backoff on a 429 response. Retries carry a client-generated idempotency key so a write is safe to repeat.
 
-Tenant documents and maintenance requests can use the same validated domain boundary as this status record; they are intentionally left out of the runnable path so the example stays small enough to teach in one session.
+Tenant documents and maintenance requests could share this validated domain boundary; they are left out of the runnable path so the example stays small enough to teach in one session. Less scope means a narrower observability surface we have to pay to store.
 
 ## Going to production: Property Device Dashboard
 
